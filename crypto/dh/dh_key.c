@@ -230,3 +230,39 @@ static int dh_finish(DH *dh)
     BN_MONT_CTX_free(dh->method_mont_p);
     return 1;
 }
+
+int DH_buf2key(DH *dh, const unsigned char *buf, size_t len)
+{
+    BIGNUM *pubkey;
+
+    if ((pubkey = BN_bin2bn(buf, len, NULL)) == NULL
+        || BN_is_zero(pubkey)
+        || !DH_set0_key(dh, pubkey, NULL))
+        goto err;
+    return 1;
+err:
+    DHerr(DH_F_DH_BUF2KEY, ERR_R_INTERNAL_ERROR);
+    BN_free(pubkey);
+    return 0;
+}
+
+size_t DH_key2buf(const DH *dh, unsigned char **pbuf)
+{
+    const BIGNUM *pubkey;
+    int bn_size;
+
+    DH_get0_key(dh, &pubkey, NULL);
+    if (pubkey == NULL || (bn_size = BN_num_bytes(pubkey)) == 0) {
+        DHerr(DH_F_DH_KEY2BUF, ERR_R_PASSED_INVALID_ARGUMENT);
+        return 0;
+    }
+    if ((*pbuf = OPENSSL_malloc(bn_size)) == NULL) {
+        DHerr(DH_F_DH_KEY2BUF, ERR_R_MALLOC_FAILURE);
+        return 0;
+    }
+    if (BN_bn2bin(pubkey, *pbuf) < 0) {
+        DHerr(DH_F_DH_KEY2BUF, ERR_R_INTERNAL_ERROR);
+        return 0;
+    }
+    return bn_size;
+}

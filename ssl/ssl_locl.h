@@ -1508,13 +1508,15 @@ typedef struct tls_group_info_st {
     int nid;                    /* Curve NID */
     int secbits;                /* Bits of security (from SP800-57) */
     uint16_t flags;             /* Flags: currently just group type */
+    uint16_t group_id;          /* Group ID */
 } TLS_GROUP_INFO;
 
 /* flags values */
-# define TLS_CURVE_TYPE          0x3 /* Mask for group type */
-# define TLS_CURVE_PRIME         0x0
-# define TLS_CURVE_CHAR2         0x1
-# define TLS_CURVE_CUSTOM        0x2
+# define TLS_GROUP_TYPE             0xF /* Mask for group type */
+# define TLS_GROUP_CURVE_PRIME      0x1
+# define TLS_GROUP_CURVE_CHAR2      0x2
+# define TLS_GROUP_CURVE_CUSTOM     0x4
+# define TLS_GROUP_FFDHE            0x8
 
 typedef struct cert_pkey_st CERT_PKEY;
 
