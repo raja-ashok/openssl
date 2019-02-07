@@ -3474,6 +3474,60 @@ static int test_ciphersuite_change(void)
 }
 
 /*
+ * Test TLSv1.3
+ * Test 0 = Test ECDHE Key exchange
+ * Test 1 = Test FFDHE Key exchange
+ */
+static int test_tls13_key_exchange(int idx)
+{
+    SSL_CTX *sctx = NULL, *cctx = NULL;
+    SSL *serverssl = NULL, *clientssl = NULL;
+    int testresult = 0;
+    int ecdhe_kexch_groups[] = {NID_X9_62_prime256v1, NID_secp384r1, NID_secp521r1,
+                                NID_X25519, NID_X448};
+    int ffdhe_kexch_groups[] = {NID_ffdhe2048, NID_ffdhe3072, NID_ffdhe4096,
+                                NID_ffdhe6144, NID_ffdhe8192};
+    int *kexch_groups;
+    int kexch_groups_size;
+
+    if (!TEST_true(create_ssl_ctx_pair(TLS_server_method(), TLS_client_method(),
+                                       TLS1_VERSION, 0,
+                                       &sctx, &cctx, cert, privkey)))
+        goto end;
+
+    if (!TEST_true(create_ssl_objects(sctx, cctx, &serverssl, &clientssl,
+                                             NULL, NULL)))
+        goto end;
+
+    switch (idx) {
+        case 0:
+            kexch_groups = ecdhe_kexch_groups;
+            kexch_groups_size = OSSL_NELEM(ecdhe_kexch_groups);
+            break;
+        case 1:
+            kexch_groups = ffdhe_kexch_groups;
+            kexch_groups_size = OSSL_NELEM(ffdhe_kexch_groups);
+            break;
+    }
+
+    if ((SSL_set1_groups(serverssl, kexch_groups, kexch_groups_size) != 1)
+        || (SSL_set1_groups(clientssl, kexch_groups, kexch_groups_size) != 1))
+        goto end;
+
+    if (!TEST_true(create_ssl_connection(serverssl, clientssl, SSL_ERROR_NONE))) {
+        goto end;
+    }
+
+    testresult = 1;
+ end:
+    SSL_free(serverssl);
+    SSL_free(clientssl);
+    SSL_CTX_free(sctx);
+    SSL_CTX_free(cctx);
+    return testresult;
+}
+
+/*
  * Test TLSv1.3 PSKs
  * Test 0 = Test new style callbacks
  * Test 1 = Test both new and old style callbacks
@@ -6118,6 +6172,7 @@ int setup_tests(void)
 #else
     ADD_ALL_TESTS(test_tls13_psk, 4);
 #endif  /* OPENSSL_NO_PSK */
+    ADD_ALL_TESTS(test_tls13_key_exchange, 2);
     ADD_ALL_TESTS(test_custom_exts, 5);
     ADD_TEST(test_stateless);
     ADD_TEST(test_pha_key_update);
