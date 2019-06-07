@@ -2546,6 +2546,10 @@ static int has_usable_cert(SSL *s, const SIGALG_LOOKUP *sig, int idx)
         idx = sig->sig_idx;
     if (!ssl_has_cert(s, idx))
         return 0;
+    if (!X509_get_signature_info(s->cert->pkeys[idx].x509, &mdnid, &pknid, NULL, NULL))
+        return 0;
+    if (mdnid != sig->hash || pknid != sig->sig)
+        return 0;
     /* If the EVP_PKEY reports a mandatory digest, allow nothing else. */
     ERR_set_mark();
     switch (EVP_PKEY_get_default_digest_nid(s->cert->pkeys[idx].privatekey,
