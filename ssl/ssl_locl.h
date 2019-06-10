@@ -385,6 +385,10 @@
 # define SSL_PKEY_ED448          8
 # define SSL_PKEY_NUM            9
 
+# define TLS_SET_SIGALGS_SERVER         1
+# define TLS_SET_SIGALGS_CERT_SERVER    2
+# define TLS_SET_SIGALGS_CLIENT         3
+
 /*-
  * SSL_kRSA <- RSA_ENC
  * SSL_kDH  <- DH_ENC & (RSA_ENC | RSA_SIGN | DSA_SIGN)
@@ -1895,6 +1899,15 @@ typedef struct cert_st {
     /* Size of above array */
     size_t conf_sigalgslen;
     /*
+     * Supported Signature algorithms for server cert authentication. When set
+     * on client this is sent in the client hello as the supported signature
+     * algorithms cert extension. For servers it represents the signature
+     * algorithm client is willing to accept on Server Certificate.
+     */
+    uint16_t *conf_sigalgs_cert;
+    /* Size of above array */
+    size_t conf_sigalgs_cert_len;
+    /*
      * Client authentication signature algorithms, if not set then uses
      * conf_sigalgs. On servers these will be the signature algorithms sent
      * to the client in a certificate request for TLS 1.2. On a client this
@@ -2539,11 +2552,11 @@ __owur int tls_use_ticket(SSL *s);
 
 void ssl_set_sig_mask(uint32_t *pmask_a, SSL *s, int op);
 
-__owur int tls1_set_sigalgs_list(CERT *c, const char *str, int client);
-__owur int tls1_set_raw_sigalgs(CERT *c, const uint16_t *psigs, size_t salglen,
-                                int client);
+__owur int tls1_set_sigalgs_list(CERT *c, const char *str, int mode);
+__owur void tls1_set_raw_sigalgs(CERT *c, uint16_t *psigs, size_t salglen,
+                                int mode);
 __owur int tls1_set_sigalgs(CERT *c, const int *salg, size_t salglen,
-                            int client);
+                            int mode);
 int tls1_check_chain(SSL *s, X509 *x, EVP_PKEY *pk, STACK_OF(X509) *chain,
                      int idx);
 void tls1_set_cert_validity(SSL *s);

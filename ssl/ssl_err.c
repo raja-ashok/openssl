@@ -408,7 +408,7 @@ static const ERR_STRING_DATA SSL_str_functs[] = {
     {ERR_PACK(ERR_LIB_SSL, SSL_F_TLS1_SETUP_KEY_BLOCK, 0),
      "tls1_setup_key_block"},
     {ERR_PACK(ERR_LIB_SSL, SSL_F_TLS1_SET_GROUPS, 0), "tls1_set_groups"},
-    {ERR_PACK(ERR_LIB_SSL, SSL_F_TLS1_SET_RAW_SIGALGS, 0),
+    {ERR_PACK(ERR_LIB_SSL, SSL_F_TLS1_SET_SIGALGS_LIST, 0),
      "tls1_set_raw_sigalgs"},
     {ERR_PACK(ERR_LIB_SSL, SSL_F_TLS1_SET_SERVER_SIGALGS, 0),
      "tls1_set_server_sigalgs"},

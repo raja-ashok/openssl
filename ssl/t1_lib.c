@@ -1991,42 +1991,48 @@ static int sig_cb(const char *elem, int len, void *arg)
  * Set supported signature algorithms based on a colon separated list of the
  * form sig+hash e.g. RSA+SHA512:DSA+SHA512
  */
-int tls1_set_sigalgs_list(CERT *c, const char *str, int client)
+int tls1_set_sigalgs_list(CERT *c, const char *str, int mode)
 {
     sig_cb_st sig;
     sig.sigalgcnt = 0;
+    uint16_t *sigalgs;
+
     if (!CONF_parse_list(str, ':', 1, sig_cb, &sig))
         return 0;
     if (c == NULL)
         return 1;
-    return tls1_set_raw_sigalgs(c, sig.sigalgs, sig.sigalgcnt, client);
-}
-
-int tls1_set_raw_sigalgs(CERT *c, const uint16_t *psigs, size_t salglen,
-                     int client)
-{
-    uint16_t *sigalgs;
-
-    if ((sigalgs = OPENSSL_malloc(salglen * sizeof(*sigalgs))) == NULL) {
-        SSLerr(SSL_F_TLS1_SET_RAW_SIGALGS, ERR_R_MALLOC_FAILURE);
+    if ((sigalgs = OPENSSL_malloc(sig.sigalgcnt * sizeof(*sigalgs))) == NULL) {
+        SSLerr(SSL_F_TLS1_SET_SIGALGS_LIST, ERR_R_MALLOC_FAILURE);
         return 0;
     }
-    memcpy(sigalgs, psigs, salglen * sizeof(*sigalgs));
-
-    if (client) {
-        OPENSSL_free(c->client_sigalgs);
-        c->client_sigalgs = sigalgs;
-        c->client_sigalgslen = salglen;
-    } else {
-        OPENSSL_free(c->conf_sigalgs);
-        c->conf_sigalgs = sigalgs;
-        c->conf_sigalgslen = salglen;
-    }
-
+    memcpy(sigalgs, sig.sigalgs, sig.sigalgcnt * sizeof(*sigalgs));
+    tls1_set_raw_sigalgs(c, sigalgs, sig.sigalgcnt, mode);
     return 1;
 }
 
-int tls1_set_sigalgs(CERT *c, const int *psig_nids, size_t salglen, int client)
+void tls1_set_raw_sigalgs(CERT *c, uint16_t *sigalgs, size_t salglen,
+                     int mode)
+{
+    switch (mode) {
+        case TLS_SET_SIGALGS_SERVER:
+            OPENSSL_free(c->conf_sigalgs);
+            c->conf_sigalgs = sigalgs;
+            c->conf_sigalgslen = salglen / 2;
+            break;
+        case TLS_SET_SIGALGS_CERT_SERVER:
+            OPENSSL_free(c->conf_sigalgs_cert);
+            c->conf_sigalgs_cert = sigalgs;
+            c->conf_sigalgs_cert_len = salglen / 2;
+            break;
+        case TLS_SET_SIGALGS_CLIENT:
+            OPENSSL_free(c->client_sigalgs);
+            c->client_sigalgs = sigalgs;
+            c->client_sigalgslen = salglen / 2;
+            break;
+    }
+}
+
+int tls1_set_sigalgs(CERT *c, const int *psig_nids, size_t salglen, int mode)
 {
     uint16_t *sigalgs, *sptr;
     size_t i;
@@ -2055,16 +2061,7 @@ int tls1_set_sigalgs(CERT *c, const int *psig_nids, size_t salglen, int client)
             goto err;
     }
 
-    if (client) {
-        OPENSSL_free(c->client_sigalgs);
-        c->client_sigalgs = sigalgs;
-        c->client_sigalgslen = salglen / 2;
-    } else {
-        OPENSSL_free(c->conf_sigalgs);
-        c->conf_sigalgs = sigalgs;
-        c->conf_sigalgslen = salglen / 2;
-    }
-
+    tls1_set_raw_sigalgs(c, sigalgs, salglen, mode);
     return 1;
 
  err:
@@ -2546,10 +2543,10 @@ static int has_usable_cert(SSL *s, const SIGALG_LOOKUP *sig, int idx)
         idx = sig->sig_idx;
     if (!ssl_has_cert(s, idx))
         return 0;
-    if (!X509_get_signature_info(s->cert->pkeys[idx].x509, &mdnid, &pknid, NULL, NULL))
+    /*if (!X509_get_signature_info(s->cert->pkeys[idx].x509, &mdnid, &pknid, NULL, NULL))
         return 0;
     if (mdnid != sig->hash || pknid != sig->sig)
-        return 0;
+        return 0; */
     /* If the EVP_PKEY reports a mandatory digest, allow nothing else. */
     ERR_set_mark();
     switch (EVP_PKEY_get_default_digest_nid(s->cert->pkeys[idx].privatekey,

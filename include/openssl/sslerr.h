@@ -275,7 +275,7 @@ int ERR_load_SSL_strings(void);
 # define SSL_F_TLS1_SAVE_U16                              628
 # define SSL_F_TLS1_SETUP_KEY_BLOCK                       211
 # define SSL_F_TLS1_SET_GROUPS                            629
-# define SSL_F_TLS1_SET_RAW_SIGALGS                       630
+# define SSL_F_TLS1_SET_SIGALGS_LIST                      630
 # define SSL_F_TLS1_SET_SERVER_SIGALGS                    335
 # define SSL_F_TLS1_SET_SHARED_SIGALGS                    631
 # define SSL_F_TLS1_SET_SIGALGS                           632
