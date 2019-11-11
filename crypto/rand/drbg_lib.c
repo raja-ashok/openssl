@@ -134,7 +134,8 @@ int RAND_DRBG_set(RAND_DRBG *drbg, int type, unsigned int flags)
     case NID_aes_128_ctr:
     case NID_aes_192_ctr:
     case NID_aes_256_ctr:
-        ret = drbg_ctr_init(drbg);
+        /* TODO Need to check and call aesni */
+        ret = drbg_ctr_aesni_init(drbg);
         break;
     }
 
