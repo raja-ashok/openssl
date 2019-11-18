@@ -201,9 +201,7 @@ __owur static int ctr_df(RAND_DRBG_CTR *ctr,
         return 0;
     /* Set up key K */
     if (!EVP_CipherInit_ex(ctr->ctx_ecb,
-                           ctr->cipher_ecb, NULL, ctr->KX, NULL, 1)
-        || !EVP_CipherInit_ex(ctr->ctx_ctr,
-                              ctr->cipher_ctr, NULL, ctr->KX, NULL, 1))
+                           ctr->cipher_ecb, NULL, ctr->KX, NULL, 1))
         return 0;
     /* X follows key K */
     if (!EVP_CipherUpdate(ctr->ctx_ecb, ctr->KX, &outlen, ctr->KX + ctr->keylen,
@@ -297,9 +295,7 @@ __owur static int drbg_ctr_instantiate(RAND_DRBG *drbg,
     memset(ctr->K, 0, sizeof(ctr->K));
     memset(ctr->V, 0, sizeof(ctr->V));
     if (!EVP_CipherInit_ex(ctr->ctx_ecb,
-                           ctr->cipher_ecb, NULL, ctr->K, NULL, 1)
-        || !EVP_CipherInit_ex(ctr->ctx_ctr,
-                              ctr->cipher_ctr, NULL, ctr->KX, NULL, 1))
+                           ctr->cipher_ecb, NULL, ctr->K, NULL, 1))
         return 0;
     if (!ctr_update(drbg, entropy, entropylen, pers, perslen, nonce, noncelen))
         return 0;
