@@ -171,6 +171,8 @@ __owur static int ctr_df(RAND_DRBG_CTR *ctr,
     size_t inlen;
     unsigned char *p = ctr->bltmp;
     int outlen = AES_BLOCK_SIZE;
+    uint8_t KX_tmp[64];
+    uint8_t num_of_blk;
 
     if (!ctr_BCC_init(ctr))
         return 0;
@@ -203,20 +205,14 @@ __owur static int ctr_df(RAND_DRBG_CTR *ctr,
     if (!EVP_CipherInit_ex(ctr->ctx_ecb,
                            ctr->cipher_ecb, NULL, ctr->KX, NULL, 1))
         return 0;
-    /* X follows key K */
-    if (!EVP_CipherUpdate(ctr->ctx_ecb, ctr->KX, &outlen, ctr->KX + ctr->keylen,
-                          AES_BLOCK_SIZE)
-        || outlen != AES_BLOCK_SIZE)
+    memcpy(KX_tmp, ctr->KX + ctr->keylen, AES_BLOCK_SIZE);
+    num_of_blk = ctr->keylen == 16 ? 2 : 3;
+    if (!EVP_CipherUpdate(ctr->ctx_ecb, KX_tmp + 16, &outlen, KX_tmp,
+                          AES_BLOCK_SIZE * num_of_blk)
+            || outlen != AES_BLOCK_SIZE * num_of_blk)
         return 0;
-    if (!EVP_CipherUpdate(ctr->ctx_ecb, ctr->KX + 16, &outlen, ctr->KX,
-                          AES_BLOCK_SIZE)
-        || outlen != AES_BLOCK_SIZE)
-        return 0;
-    if (ctr->keylen != 16)
-        if (!EVP_CipherUpdate(ctr->ctx_ecb, ctr->KX + 32, &outlen,
-                              ctr->KX + 16, AES_BLOCK_SIZE)
-            || outlen != AES_BLOCK_SIZE)
-            return 0;
+    memcpy(ctr->KX, KX_tmp + 16, AES_BLOCK_SIZE * num_of_blk);
+
     return 1;
 }
 
