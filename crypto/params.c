@@ -10,8 +10,23 @@
 
 #include <string.h>
 #include <openssl/params.h>
+#include <openssl/core_names.h>
 #include "internal/thread_once.h"
 #include "internal/numbers.h"
+
+typedef struct ossl_param_format_st {
+    const char *key;
+    unsigned int data_type;
+}OSSL_PARAM_FORMAT;
+
+OSSL_PARAM_FORMAT g_param_format [] = {
+    {NULL, 0},
+    {OSSL_CIPHER_PARAM_BLOCK_SIZE, OSSL_PARAM_UNSIGNED_INTEGER},
+    {OSSL_CIPHER_PARAM_IVLEN, OSSL_PARAM_UNSIGNED_INTEGER},
+    {OSSL_CIPHER_PARAM_KEYLEN, OSSL_PARAM_UNSIGNED_INTEGER},
+    {OSSL_CIPHER_PARAM_MODE, OSSL_PARAM_UNSIGNED_INTEGER},
+    {OSSL_CIPHER_PARAM_FLAGS, OSSL_PARAM_INTEGER},
+};
 
 OSSL_PARAM *OSSL_PARAM_locate(OSSL_PARAM *p, const char *key)
 {
@@ -38,6 +53,17 @@ static OSSL_PARAM ossl_param_construct(const char *key, unsigned int data_type,
     res.data_size = data_size;
     res.return_size = 0;
     return res;
+}
+
+void OSSL_PARAM_construct(OSSL_PARAM *param, unsigned int key_id, void *data,
+                          size_t data_size)
+{
+    param->key = g_param_format[key_id].key;
+    param->data_type = g_param_format[key_id].data_type;
+    param->data = data;
+    param->data_size = data_size;
+    param->return_size = 0;
+    param->key_id = key_id;
 }
 
 int OSSL_PARAM_get_int(const OSSL_PARAM *p, int *val)

@@ -282,11 +282,16 @@ int evp_cipher_cache_constants(EVP_CIPHER *cipher)
     unsigned long flags = 0;
     OSSL_PARAM params[6];
 
-    params[0] = OSSL_PARAM_construct_size_t(OSSL_CIPHER_PARAM_BLOCK_SIZE, &blksz);
-    params[1] = OSSL_PARAM_construct_size_t(OSSL_CIPHER_PARAM_IVLEN, &ivlen);
-    params[2] = OSSL_PARAM_construct_size_t(OSSL_CIPHER_PARAM_KEYLEN, &keylen);
-    params[3] = OSSL_PARAM_construct_uint(OSSL_CIPHER_PARAM_MODE, &mode);
-    params[4] = OSSL_PARAM_construct_ulong(OSSL_CIPHER_PARAM_FLAGS, &flags);
+    OSSL_PARAM_construct(&params[0], OSSL_CIPHER_PARAM_BLOCK_SIZE_ID, &blksz,
+                         sizeof(blksz));
+    OSSL_PARAM_construct(&params[1], OSSL_CIPHER_PARAM_IVLEN_ID, &ivlen,
+                         sizeof(ivlen));
+    OSSL_PARAM_construct(&params[2], OSSL_CIPHER_PARAM_KEYLEN_ID, &keylen,
+                         sizeof(keylen));
+    OSSL_PARAM_construct(&params[3], OSSL_CIPHER_PARAM_MODE_ID, &mode,
+                         sizeof(mode));
+    OSSL_PARAM_construct(&params[4], OSSL_CIPHER_PARAM_FLAGS_ID, &flags,
+                         sizeof(flags));
     params[5] = OSSL_PARAM_construct_end();
     ok = evp_do_ciph_getparams(cipher, params);
     if (ok) {

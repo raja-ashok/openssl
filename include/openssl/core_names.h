@@ -233,6 +233,13 @@ extern "C" {
 /* Passphrase callback parameters */
 #define OSSL_PASSPHRASE_PARAM_INFO              "info"
 
+typedef enum param_id {
+    OSSL_CIPHER_PARAM_BLOCK_SIZE_ID = 1,
+    OSSL_CIPHER_PARAM_IVLEN_ID = 2,
+    OSSL_CIPHER_PARAM_KEYLEN_ID = 3,
+    OSSL_CIPHER_PARAM_MODE_ID = 4,
+    OSSL_CIPHER_PARAM_FLAGS_ID = 5
+}PARAM_ID;
 # ifdef __cplusplus
 }
 # endif

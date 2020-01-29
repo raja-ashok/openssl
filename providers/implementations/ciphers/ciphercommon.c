@@ -35,34 +35,36 @@ int cipher_generic_get_params(OSSL_PARAM params[], unsigned int md,
                               unsigned long flags,
                               size_t kbits, size_t blkbits, size_t ivbits)
 {
-    OSSL_PARAM *p;
+    OSSL_PARAM *p = params;
 
-    p = OSSL_PARAM_locate(params, OSSL_CIPHER_PARAM_MODE);
-    if (p != NULL && !OSSL_PARAM_set_uint(p, md)) {
-        ERR_raise(ERR_LIB_PROV, PROV_R_FAILED_TO_SET_PARAMETER);
-        return 0;
-    }
-    p = OSSL_PARAM_locate(params, OSSL_CIPHER_PARAM_FLAGS);
-    if (p != NULL && !OSSL_PARAM_set_ulong(p, flags)) {
-        ERR_raise(ERR_LIB_PROV, PROV_R_FAILED_TO_SET_PARAMETER);
-        return 0;
-    }
-    p = OSSL_PARAM_locate(params, OSSL_CIPHER_PARAM_KEYLEN);
-    if (p != NULL && !OSSL_PARAM_set_size_t(p, kbits / 8)) {
-        ERR_raise(ERR_LIB_PROV, PROV_R_FAILED_TO_SET_PARAMETER);
-        return 0;
-    }
-    p = OSSL_PARAM_locate(params, OSSL_CIPHER_PARAM_BLOCK_SIZE);
-    if (p != NULL && !OSSL_PARAM_set_size_t(p, blkbits / 8)) {
-        ERR_raise(ERR_LIB_PROV, PROV_R_FAILED_TO_SET_PARAMETER);
-        return 0;
-    }
-    p = OSSL_PARAM_locate(params, OSSL_CIPHER_PARAM_IVLEN);
-    if (p != NULL && !OSSL_PARAM_set_size_t(p, ivbits / 8)) {
-        ERR_raise(ERR_LIB_PROV, PROV_R_FAILED_TO_SET_PARAMETER);
-        return 0;
+    for (; p->key != NULL; p++) {
+        switch (p->key_id) {
+        case OSSL_CIPHER_PARAM_MODE_ID:
+            if (OSSL_PARAM_set_uint(p, md) == 0)
+                goto err;
+            break;
+        case OSSL_CIPHER_PARAM_FLAGS_ID:
+            if (OSSL_PARAM_set_ulong(p, flags) == 0)
+                goto err;
+            break;
+        case OSSL_CIPHER_PARAM_KEYLEN_ID:
+            if (OSSL_PARAM_set_size_t(p, kbits / 8) == 0)
+                goto err;
+            break;
+        case OSSL_CIPHER_PARAM_BLOCK_SIZE_ID:
+            if (OSSL_PARAM_set_size_t(p, blkbits / 8) == 0)
+                goto err;
+            break;
+        case OSSL_CIPHER_PARAM_IVLEN_ID:
+            if (OSSL_PARAM_set_size_t(p, ivbits / 8) == 0)
+                goto err;
+            break;
+        }
     }
     return 1;
+err:
+    ERR_raise(ERR_LIB_PROV, PROV_R_FAILED_TO_SET_PARAMETER);
+    return 0;
 }
 
 CIPHER_DEFAULT_GETTABLE_CTX_PARAMS_START(cipher_generic)

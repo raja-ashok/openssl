@@ -19,10 +19,10 @@ extern "C" {
 # endif
 
 # define OSSL_PARAM_END \
-    { NULL, 0, NULL, 0, 0 }
+    { NULL, 0, NULL, 0, 0, 0 }
 
 # define OSSL_PARAM_DEFN(key, type, addr, sz)    \
-    { (key), (type), (addr), (sz), 0 }
+    { (key), (type), (addr), (sz), 0, 0 }
 
 /* Basic parameter types without return sizes */
 # define OSSL_PARAM_int(key, addr) \
@@ -69,6 +69,8 @@ const OSSL_PARAM *OSSL_PARAM_locate_const(const OSSL_PARAM *p, const char *key);
 /* Basic parameter type run-time construction */
 OSSL_PARAM OSSL_PARAM_construct_int(const char *key, int *buf);
 OSSL_PARAM OSSL_PARAM_construct_uint(const char *key, unsigned int *buf);
+void OSSL_PARAM_construct(OSSL_PARAM *param, unsigned int key_id, void *data,
+                          size_t data_size);
 OSSL_PARAM OSSL_PARAM_construct_long(const char *key, long int *buf);
 OSSL_PARAM OSSL_PARAM_construct_ulong(const char *key, unsigned long int *buf);
 OSSL_PARAM OSSL_PARAM_construct_int32(const char *key, int32_t *buf);
