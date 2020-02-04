@@ -338,6 +338,11 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
 #endif
     }
 
+    /* TODO Need to avoid type cast here */
+    if (evp_cipher_cache_constants((EVP_CIPHER *)cipher) == 0) {
+        EVPerr(EVP_F_EVP_CIPHERINIT_EX, EVP_R_INITIALIZATION_ERROR);
+        return 0;
+    }
     ctx->cipher = cipher;
     if (ctx->provctx == NULL) {
         ctx->provctx = ctx->cipher->newctx(ossl_provider_ctx(cipher->prov));
@@ -346,6 +351,8 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
             return 0;
         }
     }
+
+    /* TODO Need to check whether updating ctx->key_len, iv_len needed */
 
     if ((ctx->flags & EVP_CIPH_NO_PADDING) != 0) {
         /*
@@ -365,10 +372,10 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
         return ctx->cipher->einit(ctx->provctx,
                                   key,
                                   key == NULL ? 0
-                                              : EVP_CIPHER_CTX_key_length(ctx),
+                                              : EVP_CIPHER_key_length(ctx->cipher),
                                   iv,
                                   iv == NULL ? 0
-                                             : EVP_CIPHER_CTX_iv_length(ctx));
+                                             : EVP_CIPHER_iv_length(ctx->cipher));
     }
 
     if (ctx->cipher->dinit == NULL) {
@@ -379,10 +386,10 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
     return ctx->cipher->dinit(ctx->provctx,
                               key,
                               key == NULL ? 0
-                                          : EVP_CIPHER_CTX_key_length(ctx),
+                                          : EVP_CIPHER_key_length(ctx->cipher),
                               iv,
                               iv == NULL ? 0
-                                         : EVP_CIPHER_CTX_iv_length(ctx));
+                                         : EVP_CIPHER_iv_length(ctx->cipher));
 
     /* TODO(3.0): Remove legacy code below */
  legacy:

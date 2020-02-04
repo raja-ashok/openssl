@@ -277,6 +277,8 @@ struct evp_cipher_st {
     OSSL_OP_cipher_gettable_params_fn *gettable_params;
     OSSL_OP_cipher_gettable_ctx_params_fn *gettable_ctx_params;
     OSSL_OP_cipher_settable_ctx_params_fn *settable_ctx_params;
+    /* All constants are cached */
+    unsigned int warm_cache:1;
 } /* EVP_CIPHER */ ;
 
 /* Macros to code block cipher wrappers */

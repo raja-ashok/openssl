@@ -282,6 +282,8 @@ int evp_cipher_cache_constants(EVP_CIPHER *cipher)
     unsigned long flags = 0;
     OSSL_PARAM params[6];
 
+    if (cipher->warm_cache == 1)
+        return 1;
     OSSL_PARAM_construct(&params[0], OSSL_CIPHER_PARAM_BLOCK_SIZE_ID, &blksz,
                          sizeof(blksz));
     OSSL_PARAM_construct(&params[1], OSSL_CIPHER_PARAM_IVLEN_ID, &ivlen,
@@ -302,6 +304,7 @@ int evp_cipher_cache_constants(EVP_CIPHER *cipher)
         cipher->iv_len = ivlen;
         cipher->key_len = keylen;
         cipher->flags = flags | mode;
+        cipher->warm_cache = 1;
     }
     return ok;
 }
