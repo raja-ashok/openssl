@@ -579,7 +579,7 @@ static const OPT_PAIR ecdh_choices[] = {
 };
 # define EC_NUM       OSSL_NELEM(ecdh_choices)
 
-static double ecdh_results[EC_NUM][1];  /* 1 op: derivation */
+static double ecdh_results[EC_NUM][2];  /* 2 ops: keygen and derivation */
 
 #define R_EC_Ed25519    0
 #define R_EC_Ed448      1
@@ -618,6 +618,7 @@ typedef struct loopargs_st {
 #endif
 #ifndef OPENSSL_NO_EC
     EC_KEY *ecdsa[ECDSA_NUM];
+    EVP_PKEY_CTX *ecdh_kctx[EC_NUM];
     EVP_PKEY_CTX *ecdh_ctx[EC_NUM];
     EVP_MD_CTX *eddsa_ctx[EdDSA_NUM];
     unsigned char *secret_a;
@@ -1184,6 +1185,22 @@ static int ECDH_EVP_derive_key_loop(void *args)
 
     for (count = 0; COND(ecdh_c[testnum][0]); count++)
         EVP_PKEY_derive(ctx, derived_secret, outlen);
+
+    return count;
+}
+
+static int ECDH_EVP_keygen_loop(void *args)
+{
+    loopargs_t *tempargs = *(loopargs_t **) args;
+    EVP_PKEY_CTX *ctx = tempargs->ecdh_kctx[testnum];
+    EVP_PKEY *key = NULL;
+    int count;
+
+    for (count = 0; COND(ecdh_c[testnum][0]); count++) {
+        EVP_PKEY_keygen(ctx, &key);
+        EVP_PKEY_free(key);
+        key = NULL;
+    }
 
     return count;
 }
@@ -3055,30 +3072,40 @@ int speed_main(int argc, char **argv)
                 break;
             }
 
+            loopargs[i].ecdh_kctx[testnum] = kctx;
             loopargs[i].ecdh_ctx[testnum] = ctx;
             loopargs[i].outlen[testnum] = outlen;
 
             EVP_PKEY_free(key_A);
             EVP_PKEY_free(key_B);
-            EVP_PKEY_CTX_free(kctx);
             kctx = NULL;
             EVP_PKEY_CTX_free(test_ctx);
             test_ctx = NULL;
         }
         if (ecdh_checks != 0) {
-            pkey_print_message("", "ecdh",
-                               ecdh_c[testnum][0],
-                               test_curves[testnum].bits, seconds.ecdh);
-            Time_F(START);
-            count =
-                run_benchmark(async_jobs, ECDH_EVP_derive_key_loop, loopargs);
-            d = Time_F(STOP);
-            BIO_printf(bio_err,
-                       mr ? "+R7:%ld:%d:%.2f\n" :
-                       "%ld %u-bits ECDH ops in %.2fs\n", count,
-                       test_curves[testnum].bits, d);
-            ecdh_results[testnum][0] = (double)count / d;
-            rsa_count = count;
+            struct ecdh_op_st {
+                int(*ecdh_loop_function)(void *);
+                const char *op_str;
+            };
+            struct ecdh_op_st ecdh_op[] = {
+                {ECDH_EVP_keygen_loop, "ecdh keygen"},
+                {ECDH_EVP_derive_key_loop, "ecdh derive"}
+            };
+            for (i = 0; i < OSSL_NELEM(ecdh_op); i++) {
+                pkey_print_message("", ecdh_op[i].op_str,
+                                   ecdh_c[testnum][0],
+                                   test_curves[testnum].bits, seconds.ecdh);
+                Time_F(START);
+                count = run_benchmark(async_jobs, ecdh_op[i].ecdh_loop_function,
+                                                                    loopargs);
+                d = Time_F(STOP);
+                BIO_printf(bio_err,
+                           mr ? "+R7:%ld:%d:%.2f\n" :
+                           "%ld %u-bits ECDH ops in %.2fs\n", count,
+                           test_curves[testnum].bits, d);
+                ecdh_results[testnum][i] = (double)count / d;
+                rsa_count = count;
+            }
         }
 
         if (rsa_count <= 1) {
@@ -3310,7 +3337,7 @@ int speed_main(int argc, char **argv)
         if (!ecdh_doit[k])
             continue;
         if (testnum && !mr) {
-            printf("%30sop      op/s\n", " ");
+            printf("%28skeygen    derive    keygen/s   derive/s\n", " ");
             testnum = 0;
         }
         if (mr)
@@ -3319,9 +3346,10 @@ int speed_main(int argc, char **argv)
                    ecdh_results[k][0], 1.0 / ecdh_results[k][0]);
 
         else
-            printf("%4u bits ecdh (%s) %8.4fs %8.1f\n",
+            printf("%4u bits ecdh (%s) %8.4fs %8.4fs   %8.1f  %8.1f\n",
                    test_curves[k].bits, test_curves[k].name,
-                   1.0 / ecdh_results[k][0], ecdh_results[k][0]);
+                   1.0 / ecdh_results[k][0], 1.0/ ecdh_results[k][1],
+                   ecdh_results[k][0], ecdh_results[k][1]);
     }
 
     testnum = 1;
@@ -3364,8 +3392,10 @@ int speed_main(int argc, char **argv)
 #ifndef OPENSSL_NO_EC
         for (k = 0; k < ECDSA_NUM; k++)
             EC_KEY_free(loopargs[i].ecdsa[k]);
-        for (k = 0; k < EC_NUM; k++)
+        for (k = 0; k < EC_NUM; k++) {
+            EVP_PKEY_CTX_free(loopargs[i].ecdh_kctx[k]);
             EVP_PKEY_CTX_free(loopargs[i].ecdh_ctx[k]);
+        }
         for (k = 0; k < EdDSA_NUM; k++)
             EVP_MD_CTX_free(loopargs[i].eddsa_ctx[k]);
         OPENSSL_free(loopargs[i].secret_a);
@@ -3577,6 +3607,9 @@ static int do_multi(int multi, int size_num)
 
                 d = atof(sstrsep(&p, sep));
                 ecdh_results[k][0] += d;
+
+                d = atof(sstrsep(&p, sep));
+                ecdh_results[k][1] += d;
             } else if (strncmp(buf, "+F6:", 4) == 0) {
                 int k;
                 double d;
